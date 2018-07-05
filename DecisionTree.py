@@ -101,9 +101,9 @@ class DecisionTree:
     def createTree(self,dataset):
         DataSet=dataset.copy()
         feature=DataSet.columns
-        #特征集合
-        label=feature[-1]
         #标签集合
+        label=feature[-1]
+        #特征集合
         feature=feature[:-1]
         new_node=treeNode()
         #特征集合为空，选取最多类作为该叶子节点的标签
@@ -132,16 +132,6 @@ class DecisionTree:
             new_node.child[i]=self.createTree(sub_DataSet.drop(best_feature,axis=1))
         return new_node
     
-    #打印树
-    def printTree(self,tree):
-        if tree.child==None:
-            print('leave:%s' %tree.label)
-        else:
-            for key in tree.child.keys():
-                print("feature:%s" %tree.feature)
-                print(key,":")
-                self.printTree(tree.child[key])
-
     #获取树的所有叶子节点的分类错误的样本数
     def get_error(self,tree_root,data):
         #当前节点为叶子节点,返回节点分类错误的样本数
@@ -174,14 +164,12 @@ class DecisionTree:
                 self.pruneTree(tree_root.child[node_index],next_dataset)
         #样本集大小
         data_count=len(data)
-        #该子树的分类错误样本数
+        #该子树各叶子节点的分类错误样本数列表
         error=self.get_error(tree_root,data)
-        #样本错误均值
-        errorMean=sum(error)+0.5*len(error)
-        #错误率
-        errorRatio=(sum(error)+0.5*len(error))/data_count
+        #样本错误总数，0.5为修正因子，用于矫正数据
+        errorCount=sum(error)+0.5*len(error)
         #样本错误标准差
-        errorSTD=math.sqrt(errorMean*(1-errorRatio))
+        errorSTD=math.sqrt(errorCount*(data_count-errorCount)/data_count)
         #按标签分组，并统计
         #       count
         #class1     2
@@ -189,8 +177,8 @@ class DecisionTree:
         #......    .. 
         grouped=data.groupby(data.iloc[:,-1]).count().iloc[:,-1]
         #替换为叶子节点后的错误均值
-        after_errorMean=data_count-grouped.max()+0.5
-        if errorMean+errorSTD>=after_errorMean:
+        after_errorCount=data_count-grouped.max()+0.5
+        if errorCount+errorSTD>=after_errorCount:
             tree_root.feature=None
             tree_root.child=None
             tree_root.label=grouped.idxmax()
